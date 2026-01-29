@@ -1,0 +1,50 @@
+logging.level: error
+logging.metrics.enabled: false
+
+filebeat.inputs:
+  - type: container
+    paths:
+      - "/var/lib/docker/containers/*/*.log"
+    combine_partial: true
+    max_bytes: 1048576
+    processors:
+      - add_docker_metadata: ~
+      - decode_json_fields:
+          fields: ["message"]
+          target: ""
+          overwrite_keys: true
+      - rename:
+          fields:
+            - from: "message"
+              to: "event.original"
+          ignore_missing: true
+      - rename:
+          fields:
+            - from: "msg"
+              to: "message"
+          ignore_missing: true
+
+output.elasticsearch:
+  hosts: ["elasticsearch:9200"]
+  index: "go-app-logs-%{+yyyy.MM.dd}"
+
+setup.ilm.enabled: false
+setup.template.name: "go-app"
+setup.template.pattern: "go-app-logs-*"
+setup.template.settings:
+  index.number_of_shards: 1
+setup.template.append_fields:
+  - name: "status"
+    type: "integer"
+  - name: "latency"
+    type: "long"
+  - name: "request_id"
+    type: "keyword"
+  - name: "method"
+    type: "keyword"
+  - name: "path"
+    type: "keyword"
+  - name: "ip"
+    type: "ip"
+  - name: "level"
+    type: "keyword"

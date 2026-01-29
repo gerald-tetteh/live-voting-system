@@ -4,7 +4,6 @@ import (
 	"log"
 	"time"
 
-	"github.com/bytedance/gopkg/util/logger"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
@@ -13,6 +12,7 @@ import (
 
 func InitLog() (*zap.Logger, func()) {
 	config := zap.NewProductionConfig()
+	config.EncoderConfig.EncodeDuration = zapcore.NanosDurationEncoder
 	config.EncoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
 	logger, err := config.Build()
 	if err != nil {
@@ -26,7 +26,7 @@ func InitLog() (*zap.Logger, func()) {
 	return logger, cleanUp
 }
 
-func SetupRequestTracking(ctx *gin.Context) {
+func SetupRequestTracking(ctx *gin.Context, logger *zap.Logger) {
 	start := time.Now()
 	requestId := uuid.New().String()
 	ctx.Header("X-Request-ID", requestId)
@@ -41,6 +41,5 @@ func SetupRequestTracking(ctx *gin.Context) {
 		zap.String("path", ctx.Request.URL.Path),
 		zap.String("ip", ctx.ClientIP()),
 		zap.Duration("latency", time.Since(start)),
-		zap.String("user_agent", ctx.Request.UserAgent()),
 	)
 }
