@@ -48,3 +48,5 @@ setup.template.append_fields:
     type: "ip"
   - name: "level"
     type: "keyword"
+  - name: "stacktrace"
+    type: "text"

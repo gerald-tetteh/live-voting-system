@@ -7,6 +7,10 @@ services:
       context: backend
     ports:
       - 8080:8080
+    environment:
+      - MAX_OPEN_CONN=${MAX_OPEN_CONN}
+      - MAX_IDLE_CONN=${MAX_IDLE_CONN}
+      - DB_PASSWORD_FILE=/run/secrets/db_password
     logging:
       driver: "json-file"
       options:
@@ -14,8 +18,28 @@ services:
         max-file: 3
     networks:
       - logging-network
+      - db_network
+    secrets:
+      - db_password
     depends_on:
       - elasticsearch
+      - postgres
+
+  postgres:
+    container_name: postgres-db-service
+    image: postgres:17.4-alpine3.21
+    environment:
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD_FILE=/run/secrets/db_password
+      - POSTGRES_DB=${DB_NAME}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - db_network
+    ports:
+      - "5432:5432"
+    secrets:
+      - db_password
 
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.10.2
@@ -25,8 +49,6 @@ services:
       - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
     networks:
       - logging-network
-    ports:
-      - "9200:9200"
 
   kibana:
     image: docker.elastic.co/kibana/kibana:8.10.2
@@ -51,3 +73,11 @@ services:
 
 networks:
   logging-network:
+  db_network:
+
+secrets:
+  db_password:
+    file: ./.secrets/db_password.txt
+
+volumes:
+  postgres_data:
