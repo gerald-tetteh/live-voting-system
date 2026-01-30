@@ -8,10 +8,13 @@ import (
 	"geraldaddo.com/live-voting-system/db"
 	"geraldaddo.com/live-voting-system/log"
 	"github.com/gin-gonic/gin"
+	"github.com/lpernett/godotenv"
 	"go.uber.org/zap"
 )
 
 func main() {
+	_ = godotenv.Load("../.env.development")
+
 	logger, cleanup := log.InitLog()
 	defer cleanup()
 	
@@ -29,7 +32,8 @@ func main() {
 		logger.Fatal(err.Error())
 	}
 
-	db.InitDB(logger, os.Getenv("DB_URL"), int(maxOpenConnections), int(maxIdleConnections))
+	dbUrl := db.GetDBUrl(logger)
+	db.InitDB(logger, dbUrl, int(maxOpenConnections), int(maxIdleConnections))
 
 	gin.SetMode(gin.ReleaseMode)
 	server := gin.New()

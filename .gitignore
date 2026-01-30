@@ -43,7 +43,7 @@ go.work
 .history
 .ionide
 
-.env
+.env*
 .secrets/*
 
 # End of https://www.toptal.com/developers/gitignore/api/go,visualstudiocode
