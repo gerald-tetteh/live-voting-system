@@ -1,40 +1,31 @@
 package models
 
-import (
-	"errors"
-	"time"
+import "time"
 
-	"github.com/google/uuid"
+type ElectionStatus string
+
+const (
+	Draft ElectionStatus = "draft"
+	Active ElectionStatus = "active"
+	Closed ElectionStatus = "closed"
+	Archived ElectionStatus = "archived"
 )
 
 type Election struct {
 	ID string
-	Name string `binding:"required"`
-	Winner string
+	Title string `binding:"required"`
+	Description string `binding:"required"`
 	StartTime time.Time `binding:"required"`
 	EndTime time.Time `binding:"required"`
-	Completed bool
-	createdAt time.Time
-	updatedAt time.Time
+	Status ElectionStatus `binding:"required"`
+	CreatedAt time.Time
+	UpdatedAt time.Time
 }
 
-func New(name string, startTime time.Time, endTime time.Time) (*Election, error) {
-	if startTime.Before(time.Now()) {
-		return nil, errors.New("'startTime' must be in the future")
+func (status ElectionStatus) IsValid() bool {
+	switch status {
+	case Draft, Active, Closed, Archived:
+		return true
 	}
-	if name == "" || endTime.Before(startTime) || startTime.Equal(endTime) {
-		return nil, errors.New("Election must have a name and the 'endTime' must be after 'startTime'")
-	}
-	currentTime := time.Now()
-	return &Election{
-		ID: uuid.NewString(),
-		Name: name,
-		StartTime: startTime,
-		EndTime: endTime,
-		Completed: false,
-		createdAt: currentTime,
-		updatedAt: currentTime,
-	}, nil
+	return false
 }
-
-func (election *Election) Save() {}

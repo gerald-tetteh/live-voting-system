@@ -1,15 +1,15 @@
 package main
 
 import (
-	"net/http"
 	"os"
 	"strconv"
 
+	"geraldaddo.com/live-voting-system/api"
 	"geraldaddo.com/live-voting-system/db"
 	"geraldaddo.com/live-voting-system/log"
+	"geraldaddo.com/live-voting-system/services"
 	"github.com/gin-gonic/gin"
 	"github.com/lpernett/godotenv"
-	"go.uber.org/zap"
 )
 
 func main() {
@@ -33,7 +33,7 @@ func main() {
 	}
 
 	dbUrl := db.GetDBUrl(logger)
-	db.InitDB(logger, dbUrl, int(maxOpenConnections), int(maxIdleConnections))
+	DB := db.InitDB(logger, dbUrl, int(maxOpenConnections), int(maxIdleConnections))
 
 	gin.SetMode(gin.ReleaseMode)
 	server := gin.New()
@@ -43,11 +43,16 @@ func main() {
 		log.SetupRequestTracking(ctx, logger)
 	})
 
-	server.GET("/", func(ctx *gin.Context) {
-		requestId := ctx.GetString("requestId")
-		logger.Info("testing root path", zap.String("request_id", requestId))
-		ctx.JSON(http.StatusOK, gin.H{"message": "server is working well"})
-	})
+	electionService := &services.ElectionService{
+		Logger: logger,
+		DB: DB,
+	}
+	electionAPI := &api.ElectionAPI{
+		Service: electionService,
+		Logger: logger,
+	}
+
+	electionAPI.RegisterRoutes(server)
 
 	logger.Info("Starting server")
 	server.Run(":8080")
