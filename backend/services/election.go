@@ -55,3 +55,19 @@ func (service *ElectionService) GetAll(params ElectionQueryParams) ([]models.Ele
 	}
 	return elections, nil
 }
+
+func (service *ElectionService) GetOne(id string) (*models.Election, error) {
+	query := `
+	SELECT id, title, description, start_time, end_time, status, created_at, updated_at
+	FROM elections
+	WHERE id = $1
+	`
+	row := service.DB.QueryRow(query, id)
+	
+	var e models.Election
+	err := row.Scan(&e.ID, &e.Title, &e.Description, &e.StartTime, &e.EndTime, &e.Status, &e.CreatedAt, &e.UpdatedAt)
+	if err != nil {
+		return nil, err
+	}
+	return &e, nil
+}

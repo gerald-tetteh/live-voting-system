@@ -16,8 +16,9 @@ type ElectionAPI struct {
 }
 
 func (api *ElectionAPI) RegisterRoutes(server *gin.Engine) {
-	server.POST("/elections", api.createElection)
 	server.GET("/elections", api.getElections)
+	server.GET("/elections/:id", api.getElection)
+	server.POST("/elections", api.createElection)
 }
 
 func (api *ElectionAPI) createElection(ctx *gin.Context) {
@@ -40,7 +41,8 @@ func (api *ElectionAPI) createElection(ctx *gin.Context) {
 	api.Logger.Info("Created election", zap.String("request_id", requestId))
 	ctx.JSON(http.StatusOK, gin.H{"message": "created election"})
 }
-func (api * ElectionAPI) getElections(ctx *gin.Context) {
+
+func (api *ElectionAPI) getElections(ctx *gin.Context) {
 	requestId := ctx.GetString("requestId")
 
 	rawStatus := ctx.Query("status")
@@ -78,6 +80,21 @@ func (api * ElectionAPI) getElections(ctx *gin.Context) {
 		api.Logger.Error(err.Error())
 		api.Logger.Error("could not get elections", zap.String("request_id", requestId))
 		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "could not get elections"})
+		return
 	}
 	ctx.JSON(http.StatusOK, elections)
+}
+
+func (api *ElectionAPI) getElection(ctx *gin.Context) {
+	requestId := ctx.GetString("requestId")
+	electionId := ctx.Param("id")
+
+	election, err := api.Service.GetOne(electionId)
+	if err != nil {
+		api.Logger.Error(err.Error())
+		api.Logger.Error("could not get election with id: " + electionId, zap.String("request_id", requestId))
+		ctx.JSON(http.StatusBadRequest, gin.H{"message": "could not get election"})
+		return
+	}
+	ctx.JSON(http.StatusOK, election)
 }
