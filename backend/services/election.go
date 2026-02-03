@@ -24,10 +24,7 @@ func (service *ElectionService) Save(election *models.Election) error {
 	VALUES ($1, $2, $3, $4, $5)`
 	_, err := service.DB.Exec(
 		insertStatement, election.Title, election.Description, election.StartTime, election.EndTime, election.Status)
-	if err != nil {
-		return err
-	}
-	return nil
+	return err
 }
 
 func (service *ElectionService) GetAll(params ElectionQueryParams) ([]models.Election, error) {
@@ -70,4 +67,14 @@ func (service *ElectionService) GetOne(id string) (*models.Election, error) {
 		return nil, err
 	}
 	return &e, nil
+}
+
+func (service *ElectionService) UpdateOne(id string, e *models.Election) (error) {
+	updateStatement := `
+	UPDATE elections
+	SET title = $1, description = $2, start_time = $3, end_time = $4, status = $5
+	WHERE id = $6
+	`
+	_, err := service.DB.Exec(updateStatement, &e.Title, &e.Description, &e.StartTime, &e.EndTime, &e.Status, id)
+	return err
 }

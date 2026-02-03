@@ -3,6 +3,7 @@ package api
 import (
 	"net/http"
 	"strconv"
+	"time"
 
 	"geraldaddo.com/live-voting-system/models"
 	"geraldaddo.com/live-voting-system/services"
@@ -19,6 +20,7 @@ func (api *ElectionAPI) RegisterRoutes(server *gin.Engine) {
 	server.GET("/elections", api.getElections)
 	server.GET("/elections/:id", api.getElection)
 	server.POST("/elections", api.createElection)
+	server.PATCH("/elections/:id", api.updateElection)
 }
 
 func (api *ElectionAPI) createElection(ctx *gin.Context) {
@@ -31,6 +33,7 @@ func (api *ElectionAPI) createElection(ctx *gin.Context) {
 		ctx.JSON(http.StatusBadRequest, gin.H{"message": "could not parse election"})
 		return
 	}
+	election.Status = models.Draft
 	err = api.Service.Save(&election)
 	if err != nil {
 		api.Logger.Error(err.Error())
@@ -93,8 +96,45 @@ func (api *ElectionAPI) getElection(ctx *gin.Context) {
 	if err != nil {
 		api.Logger.Error(err.Error())
 		api.Logger.Error("could not get election with id: " + electionId, zap.String("request_id", requestId))
-		ctx.JSON(http.StatusBadRequest, gin.H{"message": "could not get election"})
+		ctx.JSON(http.StatusNotFound, gin.H{"message": "could not get election"})
 		return
 	}
 	ctx.JSON(http.StatusOK, election)
+}
+
+func (api *ElectionAPI) updateElection(ctx *gin.Context) {
+	requestId := ctx.GetString("requestId")
+	electionId := ctx.Param("id")
+
+	election, err := api.Service.GetOne(electionId)
+	if err != nil {
+		api.Logger.Error(err.Error())
+		api.Logger.Error("election with id: " + electionId + " does not exist", zap.String("request_id", requestId))
+		ctx.JSON(http.StatusNotFound, gin.H{"message": "election does not exist"})
+		return
+	}
+	now := time.Now()
+	if election.Status != models.Draft || election.StartTime.Before(now) || election.StartTime.Equal(now) {
+		api.Logger.Info("Can not update active or closed election: " + electionId, zap.String("request_id", requestId))
+		ctx.JSON(http.StatusBadRequest, gin.H{"message": "Can not update active or closed election"})
+		return
+	}
+
+	var updatedElection models.Election
+	err = ctx.ShouldBindJSON(&updatedElection)
+	if err != nil {
+		api.Logger.Error(err.Error())
+		api.Logger.Error("could not parse update information", zap.String("request_id", requestId))
+		ctx.JSON(http.StatusBadRequest, gin.H{"message": "could not parse update information"})
+		return
+	}
+	err = api.Service.UpdateOne(electionId, &updatedElection)
+	if err != nil {
+		api.Logger.Error(err.Error())
+		api.Logger.Error("could not update election: " + electionId, zap.String("request_id", requestId))
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "could not update election"})
+		return
+	}
+	api.Logger.Info("updated election: " + electionId, zap.String("request_id", requestId))
+	ctx.JSON(http.StatusOK, gin.H{"message": "updated election"})
 }
