@@ -4,8 +4,8 @@ import (
 	"os"
 	"strconv"
 
-	"geraldaddo.com/live-voting-system/db"
 	"geraldaddo.com/live-voting-system/domain/election"
+	"geraldaddo.com/live-voting-system/platform/db"
 	"geraldaddo.com/live-voting-system/platform/log"
 	"github.com/gin-gonic/gin"
 	"github.com/lpernett/godotenv"
