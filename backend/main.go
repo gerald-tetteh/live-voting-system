@@ -4,10 +4,9 @@ import (
 	"os"
 	"strconv"
 
-	"geraldaddo.com/live-voting-system/api"
 	"geraldaddo.com/live-voting-system/db"
+	"geraldaddo.com/live-voting-system/domain/election"
 	"geraldaddo.com/live-voting-system/log"
-	"geraldaddo.com/live-voting-system/services"
 	"github.com/gin-gonic/gin"
 	"github.com/lpernett/godotenv"
 )
@@ -43,15 +42,7 @@ func main() {
 		log.SetupRequestTracking(ctx, logger)
 	})
 
-	electionService := &services.ElectionService{
-		Logger: logger,
-		DB: DB,
-	}
-	electionAPI := &api.ElectionAPI{
-		Service: electionService,
-		Logger: logger,
-	}
-
+	electionAPI := election.NewElectionAPI(DB, logger)
 	electionAPI.RegisterRoutes(server)
 
 	logger.Info("Starting server")
