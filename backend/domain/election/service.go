@@ -21,6 +21,10 @@ func NewElectionService(repo ElectionRepository, logger *zap.Logger) *ElectionSe
 func (service *ElectionService) CreateElection(ctx context.Context, election *Election) error {
 	requestId, _ := ctx.Value("requestId").(string)
 	election.Status = Draft
+	if election.StartTime.After(election.EndTime) || election.StartTime.Equal(election.EndTime) {
+		service.log.Warn("Election start time must be before end time")
+		return errors.New("Election start time must be before end time")
+	}
 	err := service.repo.Save(ctx, election)
 	if err != nil {
 		service.log.Error(err.Error())

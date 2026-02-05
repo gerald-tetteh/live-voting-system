@@ -13,6 +13,7 @@ type ElectionQueryParams struct {
 	Offset int
 }
 
+//go:generate mockgen -destination=../../mocks/mock_election_repo.go -package=mocks . ElectionRepository
 type ElectionRepository interface {
 	models.Repository[Election]
 	GetAllWithFilters(ctx context.Context, params ElectionQueryParams) ([]Election, error)
