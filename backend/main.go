@@ -42,7 +42,9 @@ func main() {
 		log.SetupRequestTracking(ctx, logger)
 	})
 
-	electionAPI := election.NewElectionAPI(DB, logger)
+	electionRepository := election.NewElectionRepository(DB)
+	electionService := election.NewElectionService(electionRepository, logger)
+	electionAPI := election.NewElectionAPI(electionService, logger)
 	electionAPI.RegisterRoutes(server)
 
 	logger.Info("Starting server")

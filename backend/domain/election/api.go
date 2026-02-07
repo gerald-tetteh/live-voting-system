@@ -1,7 +1,6 @@
 package election
 
 import (
-	"database/sql"
 	"net/http"
 	"strconv"
 
@@ -14,9 +13,7 @@ type ElectionAPI struct {
 	log *zap.Logger
 }
 
-func NewElectionAPI(db *sql.DB, logger *zap.Logger) *ElectionAPI {
-	repository := NewElectionRepository(db)
-	service := NewElectionService(repository, logger)
+func NewElectionAPI(service *ElectionService, logger *zap.Logger) *ElectionAPI {
 	return &ElectionAPI{service: service, log: logger}
 }
 
@@ -47,7 +44,7 @@ func (api *ElectionAPI) createElection(ctx *gin.Context) {
 
 func (api *ElectionAPI) getElections(ctx *gin.Context) {
 	requestId := ctx.GetString("requestId")
-	rawStatus := ctx.Query("status")
+	rawStatus := ctx.DefaultQuery("status", "draft")
 	status := ElectionStatus(rawStatus)
 	if !status.IsValid() {
 		api.log.Error("status is invalid", zap.String("request_id", requestId))
