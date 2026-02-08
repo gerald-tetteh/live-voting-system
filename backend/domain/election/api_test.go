@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -152,5 +153,105 @@ func TestGetElectionsAPI(t *testing.T) {
 }
 
 func TestGetElectionAPI(t *testing.T) {
-	
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	server := SetupServer()
+	api, mockRepo := SetupTestAPI(ctrl)
+	api.RegisterRoutes(server)
+
+	result := &election.Election{Title: "test-election"}
+	resultBytes, _ := json.Marshal(result)
+	mockRepo.
+		EXPECT().
+		GetById(gomock.Any(), gomock.Any()).
+		Return(result, nil).
+		Times(1)
+
+	recorder := httptest.NewRecorder()
+	request, _ := http.NewRequest("GET", "/elections/test-request-id", nil)
+	server.ServeHTTP(recorder, request)
+
+	if recorder.Code != 200 {
+		t.Errorf("Expected status code: %d but got %d", 200, recorder.Code)
+	}
+	if !slices.Equal(recorder.Body.Bytes(), resultBytes) {
+		t.Errorf("Request did not return expected JSON")
+	}
+}
+
+func TestUpdateElectionAPI(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	server := SetupServer()
+	api, mockRepo := SetupTestAPI(ctrl)
+	api.RegisterRoutes(server)
+
+	now := time.Now()
+	existingElection := &election.Election{
+		Title: "test-election",
+		Description: "test election description",
+		StartTime: now.Add(time.Hour),
+		EndTime: now.Add(2 * time.Hour),
+		Status: election.Draft,
+	}
+	validElection := &election.Election{
+		Title: "test-election",
+		Description: "test election description",
+		StartTime: now,
+		EndTime: now.Add(time.Hour),
+		Status: election.Draft,
+	}
+	invalidElection := &election.Election{Title: "invalid election"}
+
+	validElectionBytes, _ := json.Marshal(validElection)
+	invalidElectionBytes, _ := json.Marshal(invalidElection)
+
+	tests := []struct {
+		name string
+		input []byte
+		status int
+		result string
+		shouldFail bool
+	}{
+		{"Fail to parse election update", invalidElectionBytes, 400, "could not parse update information", true},
+		{"Complete election update", validElectionBytes, 200, "updated election", false},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			if !test.shouldFail {
+				mockRepo.
+					EXPECT().
+					GetById(gomock.Any(), gomock.Any()).
+					Return(existingElection, nil).
+					Times(1)
+				mockRepo.
+					EXPECT().
+					UpdateOne(gomock.Any(), gomock.Any(), gomock.Any()).
+					Return(nil).
+					Times(1)
+			}
+			recorder := httptest.NewRecorder()
+			request, _ := http.NewRequest("PATCH", "/elections/test-id", strings.NewReader(string(test.input)))
+			server.ServeHTTP(recorder, request)
+
+			if recorder.Code != test.status {
+				t.Errorf("Expect status code: %d but got %d", test.status, recorder.Code)
+			}
+			var response map[string]string
+			err := json.Unmarshal(recorder.Body.Bytes(), &response)
+			if err != nil {
+				t.Fatal("Request did not return valid JSON")
+			}
+			message, exists := response["message"]
+			if !exists {
+				t.Fatal("JSON does not contain message key")
+			}
+			if message != test.result {
+				t.Errorf("Expected message: %s but got %s", test.result, message)
+			}
+		})
+	}
 }
