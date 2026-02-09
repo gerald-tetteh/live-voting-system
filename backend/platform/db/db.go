@@ -51,6 +51,26 @@ func createTables(DB *sql.DB, logger *zap.Logger) {
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 	);
+
+	CREATE TABLE IF NOT EXISTS users (
+		id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+		first_name VARCHAR(20) NOT NULL,
+		last_name VARCHAR(20) NOT NULL,
+		middle_name VARCHAR(20),
+		email VARCHAR(50) UNIQUE NOT NULL,
+		role VARCHAR(20) DEFAULT 'base' CHECK (role IN ('base', 'admin')),
+		active BOOLEAN DEFAULT true,
+		created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+	);
+
+	CREATE TABLE IF NOT EXISTS votes (
+		id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+		election_id UUID REFERENCES elections(id),
+		user_id UUID REFERENCES users(id),
+		created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+	);
 	`
 	_, err := DB.Exec(createSchema);
 
